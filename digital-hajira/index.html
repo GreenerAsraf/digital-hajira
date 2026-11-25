@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>ডিজিটাল হাজিরা — ঘাগড়া খিলমোগল হাকিম উদ্দিন সরকারি প্রাথমিক বিদ্যালয়</title>
+  <meta name="description" content="Digital Monthly Attendance & Upobritti System for Ghagra Khilmogol Hakim Uddin Govt. Primary School">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" defer></script>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════
+     1. TEACHER SELECTION PORTAL (BIKOLPO 1: নাম নির্বাচন)
+     ═══════════════════════════════════════════════ -->
+<div class="screen active" id="sc-login">
+  <div class="portal-header">
+    <img class="portal-logo" src="assets/school-logo.png" alt="School Logo"
+         onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2260%22 height=%2260%22><text y=%2245%22 font-size=%2245%22>🏫</text></svg>';">
+    <h1 class="portal-title">ঘাগড়া খিলমোগল হাকিম উদ্দিন সরকারি প্রাথমিক বিদ্যালয়</h1>
+    <p class="portal-subtitle">ডিজিটাল হাজিরা ও উপবৃত্তি রেজিস্টার — প্রবেশদ্বার</p>
+    <div class="portal-tagline">👤 আপনার নামের উপর ক্লিক করে পিন কোড দিন</div>
+  </div>
+
+  <div class="portal-body">
+    <div class="teacher-grid-portal" id="teacher-portal-list"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     PIN MODAL POPUP (When teacher taps their name)
+     ═══════════════════════════════════════════════ -->
+<div class="pin-modal-backdrop" id="pin-modal" style="display:none;">
+  <div class="pin-modal-dialog">
+    <button class="pin-modal-close" onclick="closePinModal()">✕</button>
+    <img class="pm-avatar" id="pm-avatar" src="" alt="">
+    <h3 class="pm-name" id="pm-name">শিক্ষকের নাম</h3>
+    <p class="pm-role" id="pm-role">সহকারী শিক্ষক</p>
+
+    <!-- Role switcher if Mohammed Asraf Uddin taps -->
+    <div class="admin-role-toggle" id="admin-role-toggle" style="display:none;">
+      <label class="art-option">
+        <input type="radio" name="asrafRole" value="teacher" checked onchange="onAsrafRoleChange()">
+        <span>🎒 শ্রেণি ৪ শিক্ষক</span>
+      </label>
+      <label class="art-option">
+        <input type="radio" name="asrafRole" value="admin" onchange="onAsrafRoleChange()">
+        <span>👑 প্রধান অ্যাডমিন (সকল শ্রেণি)</span>
+      </label>
+    </div>
+
+    <div class="pin-label" id="pm-pin-label">🔐 ৪ সংখ্যার পিন দিন</div>
+    <div class="pin-dots">
+      <div class="pin-dot" id="dot0"></div>
+      <div class="pin-dot" id="dot1"></div>
+      <div class="pin-dot" id="dot2"></div>
+      <div class="pin-dot" id="dot3"></div>
+    </div>
+    <div class="pin-error" id="pin-err">❌ ভুল পিন কোড! আবার চেষ্টা করুন</div>
+
+    <div class="numpad">
+      <button class="numpad-btn" onclick="pinInput('1')">১</button>
+      <button class="numpad-btn" onclick="pinInput('2')">২</button>
+      <button class="numpad-btn" onclick="pinInput('3')">৩</button>
+      <button class="numpad-btn" onclick="pinInput('4')">৪</button>
+      <button class="numpad-btn" onclick="pinInput('5')">৫</button>
+      <button class="numpad-btn" onclick="pinInput('6')">৬</button>
+      <button class="numpad-btn" onclick="pinInput('7')">৭</button>
+      <button class="numpad-btn" onclick="pinInput('8')">৮</button>
+      <button class="numpad-btn" onclick="pinInput('9')">৯</button>
+      <button class="numpad-btn btn-back" onclick="pinBack()">⌫</button>
+      <button class="numpad-btn" onclick="pinInput('0')">০</button>
+      <button class="numpad-btn btn-ok" onclick="checkPin()">OK</button>
+    </div>
+    <div class="pm-hint" id="pm-hint">ডিফল্ট পিন জানা না থাকলে অ্যাডমিনের সহায়তা নিন</div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     DOOR OPENING ANIMATION OVERLAY (Slower, Elegant 3D)
+     ═══════════════════════════════════════════════ -->
+<div class="door-overlay" id="door-overlay">
+  <div class="door-panel door-left" id="door-left">
+    <div class="door-handle left-handle"></div>
+  </div>
+  <div class="door-panel door-right" id="door-right">
+    <div class="door-handle right-handle"></div>
+  </div>
+  <div class="welcome-box" id="door-welcome">
+    <div class="wb-icon">🏫</div>
+    <h2 class="wb-title">স্বাগতম!</h2>
+    <p class="wb-school" id="door-teacher-welcome">ঘাগড়া খিলমোগল হাকিম উদ্দিন সরকারি প্রাথমিক বিদ্যালয়</p>
+    <div class="wb-badge" id="door-class-welcome">শ্রেণির খাতা উন্মুক্ত হচ্ছে...</div>
+    <p class="wb-subtext">বিদ্যালয়ের প্রবেশদ্বার খুলে যাচ্ছে...</p>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     2. STUDENT MONTHLY HAJIRA REGISTER (Strictly Segregated)
+     ═══════════════════════════════════════════════ -->
+<div class="screen" id="sc-student-monthly">
+  <div class="sub-hdr">
+    <button class="btn-back" onclick="logout()">← লগআউট</button>
+    
+    <!-- Navbar Teacher & Class Profile Information -->
+    <div class="nav-teacher-badge" id="nav-teacher-box">
+      <div class="nav-t-icon" id="nav-badge-icon">👤</div>
+      <div class="nav-t-text">
+        <span class="nav-t-name" id="nav-teacher-name">শিক্ষকের নাম</span>
+        <span class="nav-t-class" id="nav-teacher-class">নির্ধারিত শ্রেণি</span>
+      </div>
+    </div>
+
+    <div class="sub-hdr-actions">
+      <button class="btn-action" onclick="toggleLockMode()" id="btn-lock-toggle">🔒 লক করা আছে</button>
+      <button class="btn-action" onclick="exportStudentMonthlyExcel()">📥 Excel</button>
+      <button class="btn-action" onclick="window.print()">🖨️</button>
+    </div>
+  </div>
+
+  <div class="print-hdr">
+    <h1>ঘাগড়া খিলমোগল হাকিম উদ্দিন সরকারি প্রাথমিক বিদ্যালয়</h1>
+    <p id="s-print-class-title">ছাত্র-ছাত্রী মাসিক হাজিরা রেজিস্টার</p>
+    <p id="s-print-month"></p>
+  </div>
+
+  <div class="s-body wide-body">
+    <!-- Class Switcher Tabs: ONLY VISIBLE IF ADMIN! Hidden for Class Teachers -->
+    <div class="class-tabs" id="student-class-tabs" style="display:none;"></div>
+
+    <!-- Month Navigation Toolbar -->
+    <div class="reg-toolbar">
+      <div class="month-nav">
+        <button class="btn-nav" onclick="changeMonth(-1)">◀ পূর্ববর্তী</button>
+        <span class="current-month-label" id="s-current-month-lbl">নভেম্বর ২০২৬</span>
+        <button class="btn-nav" onclick="changeMonth(1)">পরবর্তী ▶</button>
+      </div>
+
+      <div class="reg-tools">
+        <button class="btn-all-p" onclick="markAllStudentsTodayPresent()">✓ আজকের দিনে শ্রেণির সবাই উপস্থিত</button>
+        <button class="btn-action" style="background:#00695C;" onclick="openStudentModal()">👥 শিক্ষার্থী</button>
+        <button class="btn-action" style="background:#5E35B1;" onclick="openHolidayModal()">📅 ছুটি</button>
+        <button class="btn-action" style="background:#37474F;" onclick="exportFullBackup()">💾 ব্যাকআপ</button>
+        <button class="btn-action" style="background:#455A64;" onclick="triggerRestoreBackup()">📂 রিস্টোর</button>
+        <button class="btn-action gold" onclick="showScreen('upobritti')">🎓 উপবৃত্তি রিপোর্ট</button>
+      </div>
+    </div>
+
+    <!-- Lock Status Notice -->
+    <div class="lock-status-notice" id="lock-notice">
+      🔒 <b>নিরাপত্তা সতর্কতা:</b> ভুল এড়াতে হাজিরা খাতাটি লক করা আছে। হাজিরা পরিবর্তন করতে উপরে <b>"🔒 লক করা আছে"</b> বাটনে চাপ দিয়ে আনলক করুন।
+    </div>
+
+    <!-- Legend -->
+    <div class="grid-legend">
+      <span><b>চিহ্ন নির্দেশিকা:</b></span>
+      <span class="leg-item leg-p">✓ উপস্থিত (P)</span>
+      <span class="leg-item leg-a">✗ অনুপস্থিত (A)</span>
+      <span class="leg-item leg-sl">📋 ছুটি (L)</span>
+      <span class="leg-item leg-off">ছুটির দিন</span>
+    </div>
+
+    <!-- 30/31 Days Grid Container -->
+    <div class="reg-table-wrapper" id="student-register-container"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     3. UPOBRITTI ELIGIBILITY SCREEN (80% Attendance)
+     ═══════════════════════════════════════════════ -->
+<div class="screen" id="sc-upobritti">
+  <div class="sub-hdr">
+    <button class="btn-back" onclick="showScreen('student-monthly')">← হাজিরা খাতায় ফেরত</button>
+
+    <div class="nav-teacher-badge" id="nav-upobritti-box">
+      <div class="nav-t-icon" id="nav-u-icon">👤</div>
+      <div class="nav-t-text">
+        <span class="nav-t-name" id="nav-u-teacher-name">শিক্ষক প্রোফাইল</span>
+        <span class="nav-t-class" id="nav-u-teacher-class">উপবৃত্তি রিপোর্ট</span>
+      </div>
+    </div>
+
+    <div class="sub-hdr-actions">
+      <button class="btn-action gold" onclick="exportUpobrittiExcel()">📥 Excel রিপোর্ট</button>
+      <button class="btn-action" onclick="window.print()">🖨️</button>
+    </div>
+  </div>
+
+  <div class="print-hdr">
+    <h1>ঘাগড়া খিলমোগল হাকিম উদ্দিন সরকারি প্রাথমিক বিদ্যালয়</h1>
+    <p>মাসিক উপবৃত্তি প্রাপ্তির যোগ্যতা তালিকা (ন্যূনতম ৮০% হাজিরা ও রিপিটার বাদ)</p>
+    <p id="u-print-month"></p>
+  </div>
+
+  <div class="s-body wide-body">
+    <!-- Class tabs only visible to Admin -->
+    <div class="class-tabs" id="upobritti-class-tabs" style="display:none;"></div>
+
+    <div class="reg-toolbar">
+      <div class="month-nav">
+        <button class="btn-nav" onclick="changeMonth(-1)">◀ পূর্ববর্তী</button>
+        <span class="current-month-label" id="u-current-month-lbl">নভেম্বর ২০২৬</span>
+        <button class="btn-nav" onclick="changeMonth(1)">পরবর্তী ▶</button>
+      </div>
+      <div class="upobritti-rule-tag">
+        <span>📜 সরকারি শর্ত: কর্মদিবসে <b>ন্যূনতম ৮০% উপস্থিতি</b> আবশ্যক এবং <b>রিপিটার ছাত্র-ছাত্রী বাদ</b></span>
+      </div>
+    </div>
+
+    <div class="stats-row" id="u-stats-summary" style="margin-bottom:15px;"></div>
+
+    <div class="r-section">
+      <div class="r-sec-title">
+        <span id="u-table-title">উপবৃত্তি তালিকা</span>
+        <button class="btn-action" style="background:var(--primary);margin-left:auto;" onclick="toggleRepeaterModal()">⚙️ রিপিটার (ফেল) শিক্ষার্থী চিহ্নিত করুন</button>
+      </div>
+      <div class="reg-table-wrapper" id="upobritti-table-container"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     4. REPEATER MANAGEMENT MODAL
+     ═══════════════════════════════════════════════ -->
+<div class="modal-backdrop" id="repeater-modal" style="display:none;">
+  <div class="modal-dialog">
+    <div class="modal-header">
+      <h3>⚙️ রিপিটার (ফেল করা) শিক্ষার্থী চিহ্নিতকরণ</h3>
+      <button class="btn-close" onclick="toggleRepeaterModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:.8rem;color:var(--text-sec);margin-bottom:10px;">
+        যেসব শিক্ষার্থী একই শ্রেণিতে দ্বিতীয় বছর পড়ছে তাদের পাশে টিক দিন। এরা উপবৃত্তি থেকে বাদ পড়বে:
+      </p>
+      <div id="repeater-list-container"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-primary" onclick="saveRepeaters()">সংরক্ষণ করুন ✓</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     5. STUDENT MANAGEMENT MODAL (ALL CLASSES)
+     ═══════════════════════════════════════════════ -->
+<div class="modal-backdrop" id="student-modal" style="display:none;">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-header">
+      <h3>👥 শিক্ষার্থী ব্যবস্থাপনা (সকল শ্রেণি)</h3>
+      <button class="btn-close" onclick="closeStudentModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="sm-form">
+        <div class="sm-form-row">
+          <label>শ্রেণি:
+            <select id="sm-class-select" onchange="resetStudentForm(); renderStudentManageList();"></select>
+          </label>
+          <label>রোল:
+            <input type="number" id="sm-roll" min="1" placeholder="রোল">
+          </label>
+          <label>লিঙ্গ:
+            <select id="sm-gender">
+              <option value="M">ছেলে (Boy)</option>
+              <option value="F">মেয়ে (Girl)</option>
+            </select>
+          </label>
+        </div>
+        <div class="sm-form-row">
+          <label style="flex:2;">নাম (বাংলা) *:
+            <input type="text" id="sm-name-bn" placeholder="যেমন: মো. আবির হোসেন">
+          </label>
+          <label style="flex:2;">Name (English):
+            <input type="text" id="sm-name-en" placeholder="e.g. Md. Abir Hossain">
+          </label>
+        </div>
+        <div class="sm-form-actions">
+          <button class="btn-primary" id="sm-save-btn" onclick="saveStudentFromModal()">+ শিক্ষার্থী যোগ করুন</button>
+          <button class="btn-secondary" onclick="resetStudentForm()">রিসেট</button>
+        </div>
+      </div>
+      <div class="sm-count-bar" id="sm-count-lbl">মোট: ০ জন</div>
+      <div id="sm-list-container" class="sm-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════
+     6. HOLIDAY MANAGEMENT MODAL (2026 / 2027)
+     ═══════════════════════════════════════════════ -->
+<div class="modal-backdrop" id="holiday-modal" style="display:none;">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-header">
+      <h3>📅 সরকারি ছুটির তালিকা (২০২৬ / ২০২৭)</h3>
+      <button class="btn-close" onclick="closeHolidayModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:.82rem;color:var(--text-sec);margin-bottom:10px;">
+        শুক্রবার ও শনিবার স্বয়ংক্রিয়ভাবে সাপ্তাহিক ছুটি। ২০২৭ বা অন্যান্য সরকারি প্রাথমিক বিদ্যালয়ের ছুটি এখানে যোগ করুন:
+      </p>
+      <div class="sm-form">
+        <div class="sm-form-row">
+          <label>তারিখ:
+            <input type="date" id="hm-date">
+          </label>
+          <label style="flex:2;">ছুটির নাম / কারণ:
+            <input type="text" id="hm-name" placeholder="যেমন: গ্রীষ্মকালীন ছুটি / বিজয় দিবস">
+          </label>
+          <button class="btn-primary" style="align-self:flex-end;" onclick="addCustomHoliday()">+ যোগ করুন</button>
+        </div>
+      </div>
+      <div id="hm-list-container" class="sm-list"></div>
+    </div>
+  </div>
+</div>
+
+<input type="file" id="backup-file-input" accept=".json" style="display:none;" onchange="handleRestoreBackupFile(event)">
+
+<!-- Toast Container -->
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+
+</body>
+</html>
